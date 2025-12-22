@@ -32,10 +32,8 @@ jobs:
         working-directory: ./server
 
       - name: Create placeholder Amplify config
-        run: |
-          if [ ! -f ./client/src/amplifyconfiguration.json ]; then
-            echo '{}' > ./client/src/amplifyconfiguration.json
-          fi
+        run: echo "{}" > src/amplifyconfiguration.json
+        working-directory: ./client
 
       - name: Build client
         run: npm run build
