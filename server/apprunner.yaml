@@ -1,0 +1,16 @@
+version: 1.0
+runtime: nodejs18
+
+build:
+  commands:
+    build:
+      - npm ci
+
+run:
+  command: node index.js
+  network:
+    port: 4000
+    env: PORT
+  env:
+    - name: NODE_ENV
+      value: "production"
