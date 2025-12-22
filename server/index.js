@@ -6,6 +6,7 @@ import cors from 'cors';
 import NodeCache from 'node-cache';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import * as jose from 'jose';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,49 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 const cache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
+
+// Cognito JWT verification middleware
+const COGNITO_REGION = process.env.COGNITO_REGION;
+const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;
+const COGNITO_APP_CLIENT_ID = process.env.COGNITO_APP_CLIENT_ID;
+let jwks = null;
+let issuer = null;
+if (COGNITO_REGION && COGNITO_USER_POOL_ID) {
+  issuer = `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`;
+  const jwksUrl = new URL(`${issuer}/.well-known/jwks.json`);
+  jwks = jose.createRemoteJWKSet(jwksUrl);
+  console.log(`[INFO] Cognito JWT verification enabled. Issuer=${issuer}, Audience(AppClientID)=${COGNITO_APP_CLIENT_ID || '(not set - audience not enforced)'}`);
+} else {
+  console.warn('[WARN] COGNITO_REGION and/or COGNITO_USER_POOL_ID not set. Skipping JWT verification.');
+}
+
+async function verifyJwtMiddleware(req, res, next) {
+  // Allow health to remain public
+  if (req.path === '/api/health') return next();
+  // Only protect /api routes
+  if (!req.path.startsWith('/api')) return next();
+
+  if (!jwks || !issuer) return next(); // if not configured, allow through (dev mode)
+
+  try {
+    const auth = req.headers['authorization'] || '';
+    const [, token] = auth.split(' ');
+    if (!token) return res.status(401).json({ error: 'Missing Authorization Bearer token' });
+
+    const { payload } = await jose.jwtVerify(token, jwks, {
+      issuer,
+      audience: COGNITO_APP_CLIENT_ID, // if undefined, jose will not enforce audience
+    });
+
+    // Attach user info for downstream routes if needed
+    req.cognito = { sub: payload.sub, username: payload['cognito:username'], email: payload.email, payload };
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token', details: err?.message });
+  }
+}
+
+app.use(verifyJwtMiddleware);
 
 async function oddsGet(path, params = {}) {
   const url = `${ODDS_API_BASE}${path}`;

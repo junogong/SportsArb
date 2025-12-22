@@ -9,9 +9,12 @@
     "preview": "vite preview --port 5174"
   },
   "dependencies": {
+    "@aws-amplify/ui-react": "^6.1.7",
+    "aws-amplify": "^6.3.6",
     "odds-arb-monorepo": "file:..",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.2",

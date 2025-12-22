@@ -1,0 +1,33 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-sportsarb-dev-a188a-authRole",
+      "UnauthRoleArn": "arn:aws:iam::776996149084:role/amplify-sportsarb-dev-a188a-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::776996149084:role/amplify-sportsarb-dev-a188a-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-sportsarb-dev-a188a-deployment",
+      "UnauthRoleName": "amplify-sportsarb-dev-a188a-unauthRole",
+      "StackName": "amplify-sportsarb-dev-a188a",
+      "StackId": "arn:aws:cloudformation:us-east-1:776996149084:stack/amplify-sportsarb-dev-a188a/26cf7240-debd-11f0-8871-0ea10d718191",
+      "AmplifyAppId": "d17nnje74jk8kk"
+    }
+  },
+  "sportsarb": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-sportsarb-sportsarb-b7f9d-authRole",
+      "UnauthRoleArn": "arn:aws:iam::776996149084:role/amplify-sportsarb-sportsarb-b7f9d-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::776996149084:role/amplify-sportsarb-sportsarb-b7f9d-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-sportsarb-sportsarb-b7f9d-deployment",
+      "UnauthRoleName": "amplify-sportsarb-sportsarb-b7f9d-unauthRole",
+      "StackName": "amplify-sportsarb-sportsarb-b7f9d",
+      "StackId": "arn:aws:cloudformation:us-east-1:776996149084:stack/amplify-sportsarb-sportsarb-b7f9d/b53ca0c0-debd-11f0-adc4-0affc6ecdf33",
+      "AmplifyAppId": "d17nnje74jk8kk"
+    },
+    "categories": {
+      "auth": {
+        "sportsarb5a1cccd0": {}
+      }
+    }
+  }
+}
