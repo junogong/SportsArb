@@ -26,7 +26,7 @@ const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
 if (!ODDS_API_KEY) {
   console.warn(`[WARN] ODDS_API_KEY is not set. Looked for ${envPath}. CWD=${process.cwd()}`);
 } else {
-  const mask = (k) => (k && k.length >= 8) ? `${k.slice(0,4)}...${k.slice(-4)} (len:${k.length})` : '(short)';
+  const mask = (k) => (k && k.length >= 8) ? `${k.slice(0, 4)}...${k.slice(-4)} (len:${k.length})` : '(short)';
   console.log(`[INFO] Loaded ODDS_API_KEY=${mask(ODDS_API_KEY)} from ${envPath}`);
 }
 
@@ -182,6 +182,7 @@ app.get('/api/sports', async (req, res) => {
     const sports = await oddsGet('/sports');
     res.json(sports);
   } catch (err) {
+    console.error('[ERROR] /api/sports failed:', err?.response?.data || err.message);
     res.status(500).json({ error: 'Failed to fetch sports', details: err?.response?.data || err.message });
   }
 });
@@ -193,6 +194,7 @@ app.get('/api/odds', async (req, res) => {
     const data = await oddsGet(`/sports/${sportKey}/odds`, { regions, markets, oddsFormat, dateFormat });
     res.json(data);
   } catch (err) {
+    console.error('[ERROR] /api/odds failed:', err?.response?.data || err.message);
     res.status(500).json({ error: 'Failed to fetch odds', details: err?.response?.data || err.message });
   }
 });
@@ -209,6 +211,7 @@ app.get('/api/arbs', async (req, res) => {
       .sort((a, b) => b.edge_rounded_percent - a.edge_rounded_percent);
     res.json({ count: arbs.length, arbs, rounding_unit: ru, bankroll: bk });
   } catch (err) {
+    console.error('[ERROR] /api/arbs failed:', err?.response?.data || err.message);
     res.status(500).json({ error: 'Failed to compute arbs', details: err?.response?.data || err.message });
   }
 });
