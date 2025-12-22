@@ -32,7 +32,7 @@ jobs:
         working-directory: ./server
 
       - name: Create placeholder Amplify config
-        run: echo "{}" > src/amplifyconfiguration.json
+        run: cp src/amplifyconfiguration.ci.json src/amplifyconfiguration.json
         working-directory: ./client
 
       - name: Build client
