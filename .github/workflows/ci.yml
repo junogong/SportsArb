@@ -31,10 +31,6 @@ jobs:
         run: npm ci
         working-directory: ./server
 
-      - name: Create placeholder Amplify config
-        run: cp src/amplifyconfiguration.ci.json src/amplifyconfiguration.json
-        working-directory: ./client
-
       - name: Build client
         run: npm run build
         working-directory: ./client
