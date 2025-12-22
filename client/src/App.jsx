@@ -51,17 +51,31 @@ function MainContent({ user, signOut }) {
     if (!sports?.length) return;
     setLoading(true); setError('');
     try {
-      // Fetch arbs for all sports sequentially to respect API rate limits
+      // Filter out futures/outrights which don't have h2h markets
+      const targetSports = sports.filter(s =>
+        !s.key.includes('winner') &&
+        !s.key.includes('championship_winner')
+      );
+
       const results = [];
-      for (const s of sports) {
-        try {
-          const r = await api.getArbs(s.key, { roundingUnit, bankroll });
-          results.push(r);
-        } catch {
-          results.push({ arbs: [] });
+      // Process in batches of 5 to speed up (Redis handles load, API limit is ~3/s on misses)
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < targetSports.length; i += BATCH_SIZE) {
+        const batch = targetSports.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(
+          batch.map(async (s) => {
+            try {
+              return await api.getArbs(s.key, { roundingUnit, bankroll });
+            } catch {
+              return { arbs: [] };
+            }
+          })
+        );
+        results.push(...batchResults);
+        // Minimal delay between batches to be safe
+        if (i + BATCH_SIZE < targetSports.length) {
+          await new Promise(res => setTimeout(res, 200));
         }
-        // Small delay to prevent hitting 3 req/s limit
-        await new Promise(res => setTimeout(res, 300));
       }
       const merged = results.flatMap(r => Array.isArray(r?.arbs) ? r.arbs : [])
         .sort((a, b) => (b.edge_rounded_percent || 0) - (a.edge_rounded_percent || 0));
@@ -137,7 +151,7 @@ function MainContent({ user, signOut }) {
   return (
     <div className="container">
       <header>
-        <h1>Sports Arbitrage Finder</h1>
+        <h1>Stackt</h1>
         <nav style={{ display: 'flex', gap: 12 }}>
           <Link to="/">Opportunities</Link>
           <Link to="/portfolio">Portfolio</Link>

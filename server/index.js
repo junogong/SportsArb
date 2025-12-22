@@ -3,10 +3,15 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import cors from 'cors';
-import NodeCache from 'node-cache';
+
+import getRedisClient from './redisClient.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as jose from 'jose';
+import { oddsGet, computeArbitrageForEvent } from './oddsService.js';
+import { startWorker } from './worker.js';
+import { getSecret } from './security.js';
+import rateLimit from 'express-rate-limit';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,21 +25,39 @@ if (result.error) {
 
 const app = express();
 const port = process.env.PORT || 4000;
-const ODDS_API_KEY = process.env.ODDS_API_KEY;
-const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
+const ODDS_API_KEY_SSM_PATH = '/arb-finder/odds-api-key';
+let ODDS_API_KEY = process.env.ODDS_API_KEY;
 
-if (!ODDS_API_KEY) {
-  console.warn(`[WARN] ODDS_API_KEY is not set. Looked for ${envPath}. CWD=${process.cwd()}`);
-} else {
-  const mask = (k) => (k && k.length >= 8) ? `${k.slice(0, 4)}...${k.slice(-4)} (len:${k.length})` : '(short)';
-  console.log(`[INFO] Loaded ODDS_API_KEY=${mask(ODDS_API_KEY)} from ${envPath}`);
+// Re-check and fetch from cloud if needed
+async function initializeSecurity() {
+  ODDS_API_KEY = await getSecret(ODDS_API_KEY_SSM_PATH, ODDS_API_KEY);
+  if (!ODDS_API_KEY) {
+    console.warn(`[WARN] ODDS_API_KEY is not set globally or via ${envPath}.`);
+  } else {
+    const mask = (k) => (k && k.length >= 8) ? `${k.slice(0, 4)}...${k.slice(-4)} (len:${k.length})` : '(short)';
+    console.log(`[INFO] Odds API Key is active (Source: ${process.env.ODDS_API_KEY === ODDS_API_KEY ? '.env' : 'AWS SSM'})`);
+    // Export globally for other modules to see if they access process.env later
+    process.env.ODDS_API_KEY = ODDS_API_KEY;
+  }
 }
+
+initializeSecurity();
 
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-const cache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
+// Global Rate Limiter for API (100 requests per 15 mins)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+// Apply limiting to all /api routes
+app.use('/api', apiLimiter);
 
 // Cognito JWT verification middleware
 const COGNITO_REGION = process.env.COGNITO_REGION;
@@ -79,99 +102,10 @@ async function verifyJwtMiddleware(req, res, next) {
 
 app.use(verifyJwtMiddleware);
 
-async function oddsGet(path, params = {}) {
-  const url = `${ODDS_API_BASE}${path}`;
-  const finalParams = { apiKey: ODDS_API_KEY, ...params };
-  const cacheKey = `${url}?${new URLSearchParams(finalParams).toString()}`;
+// Start the background cache warming worker
+startWorker();
 
-  const cached = cache.get(cacheKey);
-  if (cached) return cached;
-
-  const { data } = await axios.get(url, { params: finalParams });
-  cache.set(cacheKey, data);
-  return data;
-}
-
-function americanToDecimal(american) {
-  const o = Number(american);
-  if (!Number.isFinite(o)) return null;
-  return o > 0 ? 1 + o / 100 : 1 + 100 / Math.abs(o);
-}
-
-function computeArbitrageForEvent(event, { bankroll = 100, roundingUnit = 1, requireRoundedPositive = true } = {}) {
-  // event: from /sports/{sportKey}/odds with markets=h2h
-  const market = event.bookmakers?.flatMap(bm => bm.markets || [])?.find(m => m.key === 'h2h');
-  if (!market) return null;
-
-  // Build best price per outcome across bookmakers
-  const outcomeBest = new Map(); // outcome name -> { priceAmerican, priceDecimal, bookmaker, last_update }
-
-  for (const bm of event.bookmakers || []) {
-    const h2h = bm.markets?.find(m => m.key === 'h2h');
-    if (!h2h) continue;
-    for (const out of h2h.outcomes || []) {
-      const dec = americanToDecimal(out.price);
-      if (!dec) continue;
-      const prev = outcomeBest.get(out.name);
-      if (!prev || dec > prev.priceDecimal) {
-        outcomeBest.set(out.name, {
-          priceAmerican: out.price,
-          priceDecimal: dec,
-          bookmaker: bm.key,
-          last_update: h2h.last_update || bm.last_update || event.commence_time,
-        });
-      }
-    }
-  }
-
-  const outcomes = Array.from(outcomeBest.entries()).map(([name, info]) => ({ name, ...info }));
-  if (outcomes.length < 2) return null; // need at least two outcomes
-
-  const sumInv = outcomes.reduce((acc, o) => acc + 1 / o.priceDecimal, 0);
-  if (sumInv >= 1) return null; // no arb
-
-  const edge = 1 / sumInv - 1; // profit percentage on total stake
-
-  // Exact stake split on bankroll basis
-  const stakes = outcomes.map(o => ({
-    name: o.name,
-    stake: (bankroll / o.priceDecimal) / sumInv,
-  }));
-  const guaranteedPayout = bankroll / sumInv;
-
-  // Rounded stake split (nearest roundingUnit, default $1)
-  const roundToUnit = (x, unit) => Math.round(x / unit) * unit;
-  const stakesRounded = stakes.map(s => ({ ...s, stake: roundToUnit(s.stake, roundingUnit) }));
-  const totalStakeRounded = stakesRounded.reduce((a, s) => a + s.stake, 0);
-  // Payout per outcome = stake_on_outcome * decimal_price
-  const payouts = outcomes.map((o, idx) => stakesRounded[idx].stake * o.priceDecimal);
-  const guaranteedPayoutRounded = Math.min(...payouts);
-  const profitRounded = guaranteedPayoutRounded - totalStakeRounded;
-  const edgeRoundedPercent = totalStakeRounded > 0 ? (profitRounded / totalStakeRounded) * 100 : -Infinity;
-
-  if (requireRoundedPositive && edgeRoundedPercent <= 0) return null;
-
-  return {
-    id: event.id,
-    sport_key: event.sport_key,
-    sport_title: event.sport_title,
-    commence_time: event.commence_time,
-    home_team: event.home_team,
-    away_team: event.away_team,
-    outcomes,
-    sum_inverse: sumInv,
-    edge_percent: edge * 100,
-    bankroll_example: bankroll,
-    stakes,
-    guaranteed_payout: guaranteedPayout,
-    rounding_unit: roundingUnit,
-    stakes_rounded: stakesRounded,
-    total_stake_rounded: totalStakeRounded,
-    guaranteed_payout_rounded: guaranteedPayoutRounded,
-    edge_rounded_percent: edgeRoundedPercent,
-    profit_rounded: profitRounded,
-  };
-}
+// (Deleted inline functions as they are now imported)
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Arb server running', hasApiKey: Boolean(ODDS_API_KEY) });
