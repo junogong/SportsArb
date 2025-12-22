@@ -216,6 +216,68 @@ app.get('/api/arbs', async (req, res) => {
   }
 });
 
+// --- DynamoDB integration for user bets ---
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+
+const DDB_TABLE = process.env.DDB_TABLE || 'ArbBets';
+let ddbDoc = null;
+try {
+  const ddbClient = new DynamoDBClient({ region: 'us-east-1' });
+  ddbDoc = DynamoDBDocumentClient.from(ddbClient);
+  console.log(`[INFO] DynamoDB DocumentClient initialized. Table=${DDB_TABLE}`);
+} catch (e) {
+  console.warn('[WARN] Failed to initialize DynamoDB client:', e?.message);
+}
+
+function requireAuth(req, res) {
+  const sub = req?.cognito?.sub;
+  if (!sub) {
+    res.status(401).json({ error: 'Authentication required' });
+    return null;
+  }
+  return sub;
+}
+
+// Fetch bets list for current user
+app.get('/api/bets', async (req, res) => {
+  const sub = requireAuth(req, res);
+  if (!sub) return;
+  if (!ddbDoc) return res.status(500).json({ error: 'DynamoDB not configured' });
+  try {
+    const userID = sub;
+    const betID = 'BETS'; // Using fixed Sort Key for singleton bets list
+    const { Item } = await ddbDoc.send(new GetCommand({ TableName: DDB_TABLE, Key: { userID, betID } }));
+    const bets = Item?.data || [];
+    res.json({ bets, updatedAt: Item?.updatedAt || null });
+  } catch (err) {
+    console.error('[ERROR] GET /api/bets failed:', err);
+    res.status(500).json({ error: 'Failed to fetch bets' });
+  }
+});
+
+// Replace bets list for current user
+app.put('/api/bets', async (req, res) => {
+  const sub = requireAuth(req, res);
+  if (!sub) return;
+  if (!ddbDoc) return res.status(500).json({ error: 'DynamoDB not configured' });
+  const bets = Array.isArray(req.body?.bets) ? req.body.bets : null;
+  if (!bets) return res.status(400).json({ error: 'bets array required' });
+  try {
+    const userID = sub;
+    const betID = 'BETS';
+    const now = new Date().toISOString();
+    await ddbDoc.send(new PutCommand({
+      TableName: DDB_TABLE,
+      Item: { userID, betID, type: 'UserBets', userSub: sub, data: bets, updatedAt: now },
+    }));
+    res.json({ ok: true, updatedAt: now });
+  } catch (err) {
+    console.error('[ERROR] PUT /api/bets failed:', err);
+    res.status(500).json({ error: 'Failed to save bets' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Arb server listening on http://localhost:${port}`);
 });

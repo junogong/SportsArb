@@ -1,19 +1,34 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loadJSON, saveJSON, userKey } from './storage'
 import { Authenticator } from '@aws-amplify/ui-react'
+import api from './api'
 
 function formatCurrency(n) { return `$${n.toFixed(2)}` }
 
 export default function Portfolio({ user }) {
   const navigate = useNavigate();
+  // We don't strictly need uid for localstorage keys anymore, but it's good for effect deps
   const uid = user?.userId || user?.username || user?.sub || user?.attributes?.sub;
-  const betsKey = userKey(uid, 'bets');
-  const [bets, setBets] = useState(() => loadJSON(betsKey, []));
+
+  const [bets, setBets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    api.getBets().then(setBets)
+      .catch(e => setError('Failed to load bets'))
+      .finally(() => setLoading(false));
+  }, [uid]);
 
   function persist(next) {
+    // Optimistic update
     setBets(next);
-    saveJSON(betsKey, next);
+    api.saveBets(next).catch(() => {
+      setError('Failed to save changes');
+      // Revert or reload? For now just reload
+      api.getBets().then(setBets);
+    });
   }
 
   function updateBet(idx, patch) {
@@ -48,9 +63,11 @@ export default function Portfolio({ user }) {
         <div>Realized PnL: <b className={summary.realized >= 0 ? 'positive' : 'negative'}>{formatCurrency(summary.realized)}</b></div>
       </section>
 
+      {error && <div className="error">{error}</div>}
+
       <section>
-        <h2>Bets</h2>
-        {bets.length === 0 && <div className="empty">No bets yet. Go add some from the Opportunities page.</div>}
+        <h2>Bets {loading && <small>(loading...)</small>}</h2>
+        {!loading && bets.length === 0 && <div className="empty">No bets yet. Go add some from the Opportunities page.</div>}
         {bets.length > 0 && (
           <table className="arbs">
             <thead>
