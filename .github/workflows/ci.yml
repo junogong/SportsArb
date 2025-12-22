@@ -31,6 +31,10 @@ jobs:
         run: npm ci
         working-directory: ./server
 
+      - name: Debug - List client/src files
+        run: ls -la src/
+        working-directory: ./client
+
       - name: Build client
         run: npm run build
         working-directory: ./client
