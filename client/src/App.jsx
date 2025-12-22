@@ -143,9 +143,6 @@ function MainContent({ user, signOut }) {
           <Link to="/portfolio">Portfolio</Link>
         </nav>
         <div className="status">
-          <span className={health?.hasApiKey ? 'ok' : 'warn'}>
-            API Key: {health?.hasApiKey ? 'Configured' : 'Missing (set server/.env)'}
-          </span>
           <span style={{ marginLeft: 12 }}>
             {user && (
               <>
@@ -248,9 +245,6 @@ function MainContent({ user, signOut }) {
         <Route path="/portfolio" element={(<Suspense fallback={<div>Loading…</div>}><Portfolio user={user} key={`pf-${betsSavedTick}`} /></Suspense>)} />
       </Routes>
 
-      <footer>
-        <small>Data from The Odds API. This is for educational purposes only.</small>
-      </footer>
     </div>
   );
 }
