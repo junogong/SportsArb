@@ -18,10 +18,23 @@ const __dirname = path.dirname(__filename);
 
 // Explicitly load server/.env from the server directory
 const envPath = path.join(__dirname, '.env');
+console.log(`[DEBUG] Attempting to load .env from: ${envPath}`);
 const result = dotenv.config({ path: envPath });
+
 if (result.error) {
   console.warn(`[WARN] Could not load .env at ${envPath}. Using process env only.`);
+  console.warn(`[WARN] Error details: ${result.error.message}`);
+} else {
+  console.log(`[INFO] Successfully loaded .env file.`);
+  // Debug: Print keys (but not values for security, except safe ones)
+  const keys = Object.keys(result.parsed || {});
+  console.log(`[DEBUG] Keys loaded from .env: ${keys.join(', ')}`);
 }
+
+// Debug: Check specific relevant keys in process.env
+const debugKeys = ['ODDS_API_KEY', 'COGNITO_REGION', 'COGNITO_USER_POOL_ID', 'DDB_TABLE', 'REDIS_HOST'];
+const envState = debugKeys.map(k => `${k}=${process.env[k] ? 'SET' : 'MISSING'}`).join(', ');
+console.log(`[DEBUG] Final process.env state: ${envState}`);
 
 const app = express();
 const port = process.env.PORT || 4000;

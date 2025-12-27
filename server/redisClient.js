@@ -1,18 +1,37 @@
 import { createClient } from 'redis';
+import dotenv from 'dotenv';
 
-let client = null;
+// Force load the .env file
+dotenv.config();
 
-export default async function getRedisClient() {
-    if (client && client.isOpen) return client;
+// DEBUG: Print these logs to see if it works
+console.log('--- REDIS CONFIG DEBUG ---');
+console.log('Target Host:', process.env.REDIS_HOST);
+console.log('Target Port:', process.env.REDIS_PORT);
+console.log('--------------------------');
 
-    // Use REDIS_URL for production (ElastiCache), fallback to localhost for dev
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+let client;
 
-    client = createClient({ url: redisUrl });
+async function getRedisClient() {
+    if (client) return client;
+
+    client = createClient({
+        socket: {
+            host: process.env.REDIS_HOST,
+            port: process.env.REDIS_PORT
+        }
+    });
 
     client.on('error', (err) => console.error('[REDIS] Client Error', err));
-    client.on('connect', () => console.log('[REDIS] Connected to ' + redisUrl));
+    client.on('connect', () => console.log('[REDIS] Connected to Redis'));
 
-    await client.connect();
+    try {
+        await client.connect();
+    } catch (e) {
+        console.error('[REDIS] Initial connection failed:', e);
+    }
+
     return client;
 }
+
+export default getRedisClient;
