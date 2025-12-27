@@ -1,23 +1,18 @@
 import { createClient } from 'redis';
 
-let client;
+let client = null;
 
-async function getRedisClient() {
-    if (client) return client;
+export default async function getRedisClient() {
+    if (client && client.isOpen) return client;
 
-    // Defaults to localhost:6379 which matches our Docker container
-    client = createClient();
+    // Use REDIS_URL for production (ElastiCache), fallback to localhost for dev
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+
+    client = createClient({ url: redisUrl });
 
     client.on('error', (err) => console.error('[REDIS] Client Error', err));
-    client.on('connect', () => console.log('[REDIS] Connected to Redis'));
+    client.on('connect', () => console.log('[REDIS] Connected to ' + redisUrl));
 
-    try {
-        await client.connect();
-    } catch (e) {
-        console.error('[REDIS] Initial connection failed:', e);
-    }
-
+    await client.connect();
     return client;
 }
-
-export default getRedisClient;

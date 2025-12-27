@@ -1,16 +1,20 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 
+const BASE_URL = import.meta.env.VITE_API_URL || '';
+
 const api = {
     async getHealth() {
-        const r = await fetch('/api/health');
+        const r = await fetch(`${BASE_URL}/api/health`);
         if (!r.ok) throw new Error('Health check failed');
         return r.json();
     },
-    async authedFetch(url, options = {}) {
+    async authedFetch(path, options = {}) {
         // Obtain the current ID token to authorize against the backend (Amplify v6 modular API)
         const { tokens } = await fetchAuthSession();
         const idToken = tokens?.idToken?.toString();
-        const r = await fetch(url, {
+        const fullUrl = path.startsWith('http') ? path : `${BASE_URL}${path}`;
+
+        const r = await fetch(fullUrl, {
             ...options,
             headers: {
                 ...(options.headers || {}),

@@ -1,0 +1,39 @@
+{
+  "aws_project_region": "us-east-1",
+  "aws_cognito_identity_pool_id": "us-east-1:237c4837-9596-4251-88bf-ba93b7ef8e6e",
+  "aws_cognito_region": "us-east-1",
+  "aws_user_pools_id": "us-east-1_fK6XN8x7S",
+  "aws_user_pools_web_client_id": "70hnul6fka2rupqr73jjdp0bkl",
+  "oauth": {
+    "domain": "sportsarb-sportsarb.auth.us-east-1.amazoncognito.com",
+    "scope": [
+      "phone",
+      "email",
+      "openid",
+      "profile",
+      "aws.cognito.signin.user.admin"
+    ],
+    "redirectSignIn": "http://localhost:5173/",
+    "redirectSignOut": "http://localhost:5173/",
+    "responseType": "code"
+  },
+  "federationTarget": "COGNITO_USER_POOLS",
+  "aws_cognito_username_attributes": [],
+  "aws_cognito_social_providers": [
+    "GOOGLE"
+  ],
+  "aws_cognito_signup_attributes": [
+    "EMAIL"
+  ],
+  "aws_cognito_mfa_configuration": "OFF",
+  "aws_cognito_mfa_types": [
+    "SMS"
+  ],
+  "aws_cognito_password_protection_settings": {
+    "passwordPolicyMinLength": 8,
+    "passwordPolicyCharacters": []
+  },
+  "aws_cognito_verification_mechanisms": [
+    "EMAIL"
+  ]
+}
