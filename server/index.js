@@ -68,7 +68,12 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
+
+    // DEBUG: Log the origin to see what's failing matched
+    console.log('[CORS] Checking origin:', origin);
+
     if (allowedOrigins.indexOf(origin) === -1) {
+      console.log('[CORS] Blocked:', origin);
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
