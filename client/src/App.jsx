@@ -266,6 +266,7 @@ function MainContent({ user, signOut }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <div className="animated-bg" />
       <Authenticator socialProviders={['google']}>
         {({ signOut, user }) => (
           <MainContent user={user} signOut={signOut} />
