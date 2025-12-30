@@ -12,11 +12,15 @@ export async function oddsGet(path, params = {}) {
     const finalParams = { apiKey: ODDS_API_KEY, ...params };
     const redisKey = `odds:${url}?${new URLSearchParams(finalParams).toString()}`;
 
+    console.log(`[TRACE] oddsGet called for: ${path}`); // TRACE
+
     const redis = await getRedisClient();
 
     // Try fetching from cache first
     try {
+        console.log('[TRACE] Checking Redis...'); // TRACE
         const cached = await redis.get(redisKey);
+        console.log('[TRACE] Redis check done.'); // TRACE
         if (cached) {
             console.log(`[REDIS] HIT: ${redisKey}`);
             return JSON.parse(cached);
@@ -28,7 +32,10 @@ export async function oddsGet(path, params = {}) {
     // Fallback to API
     console.log(`[REDIS] MISS: ${redisKey}`);
     try {
-        const { data } = await axios.get(url, { params: finalParams });
+        console.log('[TRACE] Calling Axios...'); // TRACE
+        // Add timeout to axios to prevent infinite hang (5s)
+        const { data } = await axios.get(url, { params: finalParams, timeout: 5000 });
+        console.log('[TRACE] Axios returned.'); // TRACE
 
         // Save to cache (15 minutes TTL)
         try {
@@ -38,6 +45,7 @@ export async function oddsGet(path, params = {}) {
         }
         return data;
     } catch (err) {
+        console.error('[TRACE] Axios failed:', err.message); // TRACE
         // Propagate error for handling by caller
         throw err;
     }
