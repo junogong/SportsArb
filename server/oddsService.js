@@ -16,17 +16,24 @@ export async function oddsGet(path, params = {}) {
 
     const redis = await getRedisClient();
 
+    // Helper to timeout promises
+    const withTimeout = (promise, ms) => Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), ms))
+    ]);
+
     // Try fetching from cache first
     try {
         console.log('[TRACE] Checking Redis...'); // TRACE
-        const cached = await redis.get(redisKey);
+        // Fail open if Redis takes > 300ms
+        const cached = await withTimeout(redis.get(redisKey), 300);
         console.log('[TRACE] Redis check done.'); // TRACE
         if (cached) {
             console.log(`[REDIS] HIT: ${redisKey}`);
             return JSON.parse(cached);
         }
     } catch (e) {
-        console.error('[REDIS] Get failed', e);
+        console.warn(`[REDIS] Get failed (skipping cache): ${e.message}`);
     }
 
     // Fallback to API
@@ -37,11 +44,13 @@ export async function oddsGet(path, params = {}) {
         const { data } = await axios.get(url, { params: finalParams, timeout: 5000 });
         console.log('[TRACE] Axios returned.'); // TRACE
 
-        // Save to cache (15 minutes TTL)
+        // Save to cache (15 minutes TTL) -- Fire and forget, but with timeout check
         try {
-            await redis.set(redisKey, JSON.stringify(data), { EX: 900 });
+            // We don't await this strictly or we assume it might fail too
+            withTimeout(redis.set(redisKey, JSON.stringify(data), { EX: 900 }), 500)
+                .catch(err => console.error('[REDIS] Set failed async:', err.message));
         } catch (e) {
-            console.error('[REDIS] Set failed', e);
+            console.error('[REDIS] Set failed synchronously', e);
         }
         return data;
     } catch (err) {
