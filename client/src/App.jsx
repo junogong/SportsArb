@@ -160,7 +160,7 @@ function MainContent({ user, signOut }) {
           <span style={{ marginLeft: 12 }}>
             {user && (
               <>
-                Signed in as {user?.signInDetails?.loginId || user?.username}
+                Signed in as {user?.attributes?.email || user?.signInDetails?.loginId || user?.username}
                 <button style={{ marginLeft: 8 }} onClick={signOut}>Sign out</button>
               </>
             )}
