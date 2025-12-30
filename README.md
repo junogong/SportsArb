@@ -2,7 +2,7 @@
 
 A production-ready sports arbitrage hunting platform that scans bookmakers for guaranteed profit opportunities ("arbs"). Built with a focus on cloud-native architecture, security, and high performance.
 
-![App Screenshot](<img width="1919" height="966" alt="Screenshot 2025-12-30 080742" src="https://github.com/user-attachments/assets/4229c84b-7c4c-45b4-a2b0-6dab53b7de2e" />)
+<img width="1919" height="966" alt="Screenshot 2025-12-30 080742" src="https://github.com/user-attachments/assets/4229c84b-7c4c-45b4-a2b0-6dab53b7de2e" />
 
 <img width="1916" height="965" alt="Screenshot 2025-12-30 080812" src="https://github.com/user-attachments/assets/83c8f1e7-d756-4aea-a92f-d3de88c20db9" />
 
