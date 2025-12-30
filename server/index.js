@@ -9,7 +9,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as jose from 'jose';
 import { oddsGet, computeArbitrageForEvent } from './oddsService.js';
-import { startWorker } from './worker.js';
+// Worker disabled: Caching is now done on-demand by oddsService
+// import { startWorker } from './worker.js';
+// startWorker();
 import { getSecret } from './security.js';
 import rateLimit from 'express-rate-limit';
 
@@ -140,7 +142,7 @@ async function verifyJwtMiddleware(req, res, next) {
 app.use(verifyJwtMiddleware);
 
 // Start the background cache warming worker
-startWorker();
+// startWorker();
 
 // (Deleted inline functions as they are now imported)
 
