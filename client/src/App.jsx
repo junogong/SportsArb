@@ -214,7 +214,7 @@ function MainContent({ user, signOut }) {
                       <th>Commence</th>
                       <th>Edge (rounded)</th>
                       <th>Best Prices (Bookmaker)</th>
-                      <th>Stake Split (rounded)</th>
+                      <th>Stake Split (Must Bet ALL)</th>
                       <th>Actions</th>
                     </tr>
                   </thead>

@@ -20,6 +20,7 @@ function CustomTooltip({ active, payload, label }) {
   return null;
 }
 
+
 export default function Portfolio({ user }) {
   const navigate = useNavigate();
   // We don't strictly need uid for localstorage keys anymore, but it's good for effect deps
@@ -46,13 +47,25 @@ export default function Portfolio({ user }) {
     });
   }
 
-  function updateBet(idx, patch) {
-    const next = bets.map((b, i) => i === idx ? { ...b, ...patch } : b);
+  function updateBet(targetBet, patch) {
+    // "Smart" update: If setting to WIN, auto-set siblings (same eventId) to LOSE
+    let next = bets.map(b => b === targetBet ? { ...b, ...patch } : b);
+
+    if (patch.result === 'win' && targetBet.eventId) {
+      next = next.map(b => {
+        // If same event, different outcome, and currently pending (or whatever), set to lose
+        if (b.eventId === targetBet.eventId && b !== targetBet && b.outcome !== targetBet.outcome) {
+          return { ...b, result: 'lose' };
+        }
+        return b;
+      });
+    }
+
     persist(next);
   }
 
-  function removeBet(idx) {
-    const next = bets.filter((_, i) => i !== idx);
+  function removeBet(targetBet) {
+    const next = bets.filter(b => b !== targetBet);
     persist(next);
   }
 
@@ -68,29 +81,55 @@ export default function Portfolio({ user }) {
 
   const chartData = useMemo(() => {
     const sorted = [...bets].sort((a, b) => (a.placedAt || 0) - (b.placedAt || 0));
-    let running = 0;
-    // Start with 0 point? Optional.
-    const data = [];
-    if (sorted.length > 0) {
-      // Add a starting point just before the first bet if needed, but let's just do actual points
-      // actually, adding a 0 start point is nice for visual
-      data.push({ date: 'Start', value: 0 });
-    }
+
+    // Group by timestamp (or eventId) to aggregate "Net PnL" for that Arb
+    // Using timestamp as key since they are added roughly at same time, 
+    // or we can just iterate and aggregate.
+
+    const points = [];
+
+    // We want a cumulative line.
+    // We will group by unique time/event effectively.
+    // Map: placedAt -> netChange
+    const changes = new Map();
 
     sorted.forEach(b => {
-      if (b.result === 'win') running += (b.stake * (b.priceDecimal - 1));
-      else if (b.result === 'lose') running -= b.stake;
-      // pending bets don't move the line
+      const t = b.placedAt || 0;
+      let change = 0;
+      if (b.result === 'win') change += (b.stake * (b.priceDecimal - 1));
+      else if (b.result === 'lose') change -= b.stake;
 
-      const d = new Date(b.placedAt || Date.now());
-      data.push({
+      changes.set(t, (changes.get(t) || 0) + change);
+    });
+
+    let running = 0;
+    // Add start point
+    points.push({ date: 'Start', value: 0 });
+
+    const sortedTimes = Array.from(changes.keys()).sort((a, b) => a - b);
+
+    sortedTimes.forEach(t => {
+      running += changes.get(t);
+      const d = new Date(t);
+      points.push({
         date: d.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }),
         fullDate: d.toLocaleString(),
         value: running,
-        isPending: b.result === 'pending'
       });
     });
-    return data;
+
+    return points;
+  }, [bets]);
+
+  const groups = useMemo(() => {
+    // Group bets by Event ID (descending by date)
+    const g = {};
+    bets.forEach(b => {
+      const k = b.eventId || 'unknown';
+      if (!g[k]) g[k] = { eventId: k, items: [], time: b.placedAt || 0, title: `${b.away_team} @ ${b.home_team}` };
+      g[k].items.push(b);
+    });
+    return Object.values(g).sort((a, b) => b.time - a.time);
   }, [bets]);
 
   return (
@@ -147,46 +186,51 @@ export default function Portfolio({ user }) {
       <section>
         <h2>Bets {loading && <small>(loading...)</small>}</h2>
         {!loading && bets.length === 0 && <div className="empty">No bets yet. Go add some from the Opportunities page.</div>}
-        {bets.length > 0 && (
-          <table className="arbs">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Event</th>
-                <th>Outcome</th>
-                <th>Bookmaker</th>
-                <th>Price (Dec)</th>
-                <th>Stake</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bets.map((b, idx) => (
-                <tr key={idx}>
-                  <td>{new Date(b.placedAt || Date.now()).toLocaleString()}</td>
-                  <td>{b.away_team} @ {b.home_team}</td>
-                  <td>{b.outcome}</td>
-                  <td>{b.bookmaker}</td>
-                  <td>{b.priceDecimal.toFixed(2)}</td>
-                  <td>${b.stake.toFixed(2)}</td>
-                  <td>
-                    <select value={b.result || 'pending'} onChange={(e) => updateBet(idx, { result: e.target.value })}
-                      style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 4, padding: 4 }}
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="win">Win</option>
-                      <option value="lose">Lose</option>
-                    </select>
-                  </td>
-                  <td>
-                    <button onClick={() => removeBet(idx)} style={{ background: 'transparent', color: 'var(--color-error)', border: '1px solid var(--color-error)', padding: '4px 8px' }}>Remove</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+
+        {/* Render grouped bets */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {groups.map(g => (
+            <div key={g.eventId} style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px 16px', borderBottom: '1px solid var(--border-color)', fontWeight: 'bold' }}>
+                {g.title} <span style={{ fontWeight: 'normal', color: 'var(--text-secondary)', fontSize: '0.85em', marginLeft: 10 }}>{new Date(g.time).toLocaleString()}</span>
+              </div>
+              <table className="arbs" style={{ border: 'none', background: 'transparent', borderRadius: 0 }}>
+                <thead>
+                  <tr>
+                    <th style={{ background: 'transparent' }}>Outcome</th>
+                    <th style={{ background: 'transparent' }}>Bookmaker</th>
+                    <th style={{ background: 'transparent' }}>Price</th>
+                    <th style={{ background: 'transparent' }}>Stake</th>
+                    <th style={{ background: 'transparent' }}>Status</th>
+                    <th style={{ background: 'transparent' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {g.items.map((b, idx) => (
+                    <tr key={idx}>
+                      <td>{b.outcome}</td>
+                      <td>{b.bookmaker}</td>
+                      <td>{b.priceDecimal.toFixed(2)}</td>
+                      <td>${b.stake.toFixed(2)}</td>
+                      <td>
+                        <select value={b.result || 'pending'} onChange={(e) => updateBet(b, { result: e.target.value })}
+                          style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 4, padding: 4 }}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="win">Win</option>
+                          <option value="lose">Lose</option>
+                        </select>
+                      </td>
+                      <td>
+                        <button onClick={() => removeBet(b)} style={{ background: 'transparent', color: 'var(--color-error)', border: '1px solid var(--color-error)', padding: '4px 8px' }}>Remove</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   )
