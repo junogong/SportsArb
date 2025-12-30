@@ -30,8 +30,7 @@ async function getRedisClient() {
                     {
                         socket: {
                             host: host,
-                            port: port,
-                            tls: true // AWS ElastiCache usually requires TLS for cluster endpoints
+                            port: port
                         }
                     }
                 ]
