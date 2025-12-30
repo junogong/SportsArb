@@ -33,7 +33,16 @@ async function getRedisClient() {
                             port: port
                         }
                     }
-                ]
+                ],
+                // CRITICAL: Apply TLS to ALL connections (seed + discovered nodes)
+                defaults: {
+                    socket: {
+                        tls: true,
+                        // AWS ElastiCache certs are trusted by standard node CAs usually,
+                        // but hostname matching might fail for internal IPs.
+                        checkServerIdentity: () => undefined // Disable hostname verification
+                    }
+                }
             });
         } else {
             console.log('[REDIS] Verified: Using Standalone Client');
