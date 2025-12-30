@@ -31,19 +31,47 @@ A production-ready sports arbitrage hunting platform that scans bookmakers for g
 ## 🏗️ Architecture
 
 ```mermaid
-graph TD
-    User([User]) -->|HTTPS| CloudFront["AWS Amplify (Frontend)"]
-    User -->|API Calls| ALB[Nginx Reverse Proxy]
+graph LR
+    %% --- Styling Definitions ---
+    classDef userStyle fill:#f9f,stroke:#333,stroke-width:2px,color:black;
+    classDef entryStyle fill:#d6eaf8,stroke:#2e86c1,stroke-width:2px,color:black;
+    classDef computeStyle fill:#fcf3cf,stroke:#f1c40f,stroke-width:2px,color:black;
+    classDef dataStyle fill:#fadbd8,stroke:#e74c3c,stroke-width:2px,color:black;
+    classDef externalStyle fill:#ebedef,stroke:#95a5a6,stroke-width:2px,stroke-dasharray: 5 5,color:black;
+
+    %% --- Nodes ---
+    User([User]):::userStyle
     
-    subgraph VPC [AWS Cloud]
-        ALB -->|Forward| EC2[Node.js Server]
+    %% Entry Layer
+    CloudFront["AWS Amplify (Frontend)"]:::entryStyle
+    ALB[Nginx Reverse Proxy]:::entryStyle
+    
+    %% External
+    External[The Odds API]:::externalStyle
+
+    %% VPC Subgraph
+    subgraph VPC [AWS Cloud VPC]
+        style VPC fill:#fdfefe,stroke:#333,stroke-width:1px,stroke-dasharray: 5 5
         
-        EC2 -->|Read/Write| Redis[(ElastiCache Redis)]
-        EC2 -->|Store Bets| DDB[(DynamoDB)]
-        EC2 -->|Get Secrets| SSM[AWS SSM Parameter Store]
+        EC2[Node.js Server]:::computeStyle
         
-        EC2 -.->|Failover| External[The Odds API]
+        %% Data & Config
+        Redis[(ElastiCache Redis)]:::dataStyle
+        DDB[(DynamoDB)]:::dataStyle
+        SSM{{AWS SSM Param Store}}:::dataStyle
     end
+
+    %% --- Relationships ---
+    User -->|HTTPS| CloudFront
+    User -->|API Calls| ALB
+    
+    ALB -->|Forward| EC2
+    
+    EC2 -->|Read/Write| Redis
+    EC2 -->|Store Bets| DDB
+    EC2 -->|Get Secrets| SSM
+    
+    EC2 -.->|Failover / Data| External
 ```
 
 ## 🛠️ Tech Stack
