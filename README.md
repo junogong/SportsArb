@@ -32,7 +32,7 @@ A production-ready sports arbitrage hunting platform that scans bookmakers for g
 
 ```mermaid
 graph TD
-    User([User]) -->|HTTPS| CloudFront[AWS Amplify (Frontend)]
+    User([User]) -->|HTTPS| CloudFront["AWS Amplify (Frontend)"]
     User -->|API Calls| ALB[Nginx Reverse Proxy]
     
     subgraph VPC [AWS Cloud]
