@@ -1,26 +1,39 @@
 :root {
-  --bg-app: #0f172a;       /* Slate 900 */
-  --bg-surface: #1e293b;   /* Slate 800 */
-  --bg-input: #020617;     /* Slate 950 */
-  
-  --border-color: #334155; /* Slate 700 */
-  --border-focus: #38bdf8; /* Sky 400 */
-  
-  --text-primary: #f8fafc; /* Slate 50 */
-  --text-secondary: #94a3b8; /* Slate 400 */
-  
-  --accent-primary: #38bdf8; /* Sky 400 */
-  --accent-hover: #0ea5e9;   /* Sky 500 */
-  
-  --color-success: #4ade80;  /* Green 400 */
-  --color-error: #f87171;    /* Red 400 */
-  
+  --bg-app: #0f172a;
+  /* Slate 900 */
+  --bg-surface: #1e293b;
+  /* Slate 800 */
+  --bg-input: #020617;
+  /* Slate 950 */
+
+  --border-color: #334155;
+  /* Slate 700 */
+  --border-focus: #38bdf8;
+  /* Sky 400 */
+
+  --text-primary: #f8fafc;
+  /* Slate 50 */
+  --text-secondary: #94a3b8;
+  /* Slate 400 */
+
+  --accent-primary: #38bdf8;
+  /* Sky 400 */
+  --accent-hover: #0ea5e9;
+  /* Sky 500 */
+
+  --color-success: #4ade80;
+  /* Green 400 */
+  --color-error: #f87171;
+  /* Red 400 */
+
   --radius-lg: 12px;
   --radius-md: 8px;
   --radius-sm: 4px;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   box-sizing: border-box;
@@ -34,7 +47,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: inherit;
 }
 
@@ -70,7 +85,8 @@ nav a {
   transition: color 0.2s;
 }
 
-nav a:hover, nav a.active {
+nav a:hover,
+nav a.active {
   color: var(--accent-primary);
 }
 
@@ -100,7 +116,8 @@ label {
   color: var(--text-secondary);
 }
 
-input[type="text"], select {
+input[type="text"],
+select {
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
@@ -199,6 +216,7 @@ li {
 .positive {
   color: var(--color-success);
 }
+
 .negative {
   color: var(--color-error);
 }
@@ -234,13 +252,43 @@ footer {
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
-  background: var(--bg-app); 
+  background: var(--bg-app);
 }
+
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color); 
+  background: var(--border-color);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary); 
+  background: var(--text-secondary);
+}
+
+/* AWS Amplify Authenticator Overrides */
+[data-amplify-authenticator] {
+  --amplify-colors-background-primary: var(--bg-app);
+  --amplify-colors-background-secondary: var(--bg-surface);
+  --amplify-colors-font-primary: var(--text-primary);
+  --amplify-colors-font-secondary: var(--text-secondary);
+  --amplify-colors-brand-primary-80: var(--accent-primary);
+  --amplify-colors-brand-primary-90: var(--accent-hover);
+  --amplify-colors-brand-primary-100: var(--accent-hover);
+  --amplify-components-button-primary-background-color: var(--accent-primary);
+  --amplify-components-fieldcontrol-background-color: var(--bg-input);
+  --amplify-components-fieldcontrol-border-color: var(--border-color);
+  --amplify-components-tabs-item-active-border-color: var(--accent-primary);
+  --amplify-components-tabs-item-color: var(--text-secondary);
+  --amplify-components-tabs-item-active-color: var(--accent-primary);
+}
+
+[data-amplify-authenticator] input {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-amplify-authenticator] label {
+  color: var(--text-secondary) !important;
 }
