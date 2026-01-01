@@ -128,6 +128,25 @@ npm run dev
 2.  **Least Privilege**: The EC2 instance role only has permission to `PutItem` on the specific DDB table and `GetParameter` for the specific SSM path.
 3.  **TLS Encryption**: All Redis connections (if ElastiCache) are encrypted in transit.
 
+## 🧪 Testing & CI/CD
+This project uses **Jest** for backend unit testing and **GitHub Actions** for automated validation.
+
+### Running Tests Locally
+```bash
+cd server
+npm test
+```
+This executes the test suite in `server/tests/`, verifying:
+*   Arbitrage Math Logic (Positive/Negative cases)
+*   Data parsing resilience
+
+### Automated Pipeline
+On every `git push` to `main`, GitHub Actions:
+1.  Installs dependencies (Client & Server).
+2.  Builds the React Frontend.
+3.  Runs the Backend Unit Tests.
+4.  (Optional) Deploys to AWS if all checks pass.
+
 ## 📈 Performance
 *   **Cache Hit**: < 3ms response time.
 *   **Cache Miss**: ~400ms (API fetch) -> Auto-caches for 15 minutes.
