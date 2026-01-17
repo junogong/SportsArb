@@ -1,0 +1,12 @@
+ec2_instance_id = "i-04cfc206cfecef51b"
+
+elasticache_subnet_group = "stakt"
+
+elasticache_security_group_id = "sg-07869119e7afcce40"
+
+aws_region             = "us-east-1"
+elasticache_cluster_id = "stakt-redis"
+elasticache_node_type  = "cache.t3.micro"
+elasticache_port       = 6379
+
+paused = false

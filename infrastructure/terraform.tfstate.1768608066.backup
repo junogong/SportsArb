@@ -1,0 +1,217 @@
+{
+  "version": 4,
+  "terraform_version": "1.14.3",
+  "serial": 7,
+  "lineage": "376fd9c6-4d70-4c40-1a03-0bece0d8f351",
+  "outputs": {
+    "ec2_state": {
+      "value": "stopped",
+      "type": "string"
+    },
+    "infrastructure_status": {
+      "value": "⏸️  PAUSED - Resources stopped/deleted",
+      "type": "string"
+    },
+    "redis_endpoint": {
+      "value": "N/A (paused)",
+      "type": "string"
+    },
+    "redis_ssm_parameter": {
+      "value": "/stakt/redis/host",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "module": "module.ec2",
+      "mode": "managed",
+      "type": "aws_ec2_instance_state",
+      "name": "backend",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "force": false,
+            "id": "i-04cfc206cfecef51b",
+            "instance_id": "i-04cfc206cfecef51b",
+            "state": "stopped",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAsInVwZGF0ZSI6NjAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIwIn0="
+        }
+      ]
+    },
+    {
+      "module": "module.elasticache",
+      "mode": "managed",
+      "type": "aws_elasticache_cluster",
+      "name": "redis",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "apply_immediately": null,
+            "arn": "arn:aws:elasticache:us-east-1:776996149084:cluster:sportsarb-cache-0001-001",
+            "auto_minor_version_upgrade": "true",
+            "availability_zone": "us-east-1a",
+            "az_mode": "single-az",
+            "cache_nodes": [
+              {
+                "address": "sportsarb-cache-0001-001.sportsarb-cache.kipuwa.use1.cache.amazonaws.com",
+                "availability_zone": "us-east-1a",
+                "id": "0001",
+                "outpost_arn": "",
+                "port": 6379
+              }
+            ],
+            "cluster_address": null,
+            "cluster_id": "sportsarb-cache-0001-001",
+            "configuration_endpoint": null,
+            "engine": "redis",
+            "engine_version": "7.1",
+            "engine_version_actual": "7.1.0",
+            "final_snapshot_identifier": null,
+            "id": "sportsarb-cache-0001-001",
+            "ip_discovery": "ipv4",
+            "log_delivery_configuration": [],
+            "maintenance_window": "tue:04:00-tue:05:00",
+            "network_type": "ipv4",
+            "node_type": "cache.t4g.micro",
+            "notification_topic_arn": null,
+            "num_cache_nodes": 1,
+            "outpost_mode": null,
+            "parameter_group_name": "default.redis7.cluster.on",
+            "port": 6379,
+            "preferred_availability_zones": null,
+            "preferred_outpost_arn": "",
+            "replication_group_id": "sportsarb-cache",
+            "security_group_ids": [
+              "sg-07869119e7afcce40"
+            ],
+            "snapshot_arns": null,
+            "snapshot_name": null,
+            "snapshot_retention_limit": 0,
+            "snapshot_window": "08:30-09:30",
+            "subnet_group_name": "stakt",
+            "tags": {},
+            "tags_all": {},
+            "timeouts": null,
+            "transit_encryption_enabled": true
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoyNDAwMDAwMDAwMDAwLCJkZWxldGUiOjI0MDAwMDAwMDAwMDAsInVwZGF0ZSI6NDgwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMCJ9"
+        }
+      ]
+    },
+    {
+      "module": "module.ssm",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "redis_host",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "allowed_pattern": "",
+            "arn": "arn:aws:ssm:us-east-1:776996149084:parameter/stakt/redis/host",
+            "data_type": "text",
+            "description": "",
+            "has_value_wo": false,
+            "id": "/stakt/redis/host",
+            "insecure_value": null,
+            "key_id": "",
+            "name": "/stakt/redis/host",
+            "overwrite": null,
+            "tags": {},
+            "tags_all": {},
+            "tier": "Standard",
+            "type": "String",
+            "value": "managed-by-terraform",
+            "value_wo": null,
+            "value_wo_version": null,
+            "version": 1
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "value"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "value_wo"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjAifQ==",
+          "dependencies": [
+            "module.elasticache.aws_elasticache_cluster.redis"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.ssm",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "redis_port",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "allowed_pattern": "",
+            "arn": "arn:aws:ssm:us-east-1:776996149084:parameter/stakt/redis/port",
+            "data_type": "text",
+            "description": "Redis port - updated by Terraform",
+            "has_value_wo": false,
+            "id": "/stakt/redis/port",
+            "insecure_value": null,
+            "key_id": "",
+            "name": "/stakt/redis/port",
+            "overwrite": true,
+            "tags": {
+              "ManagedBy": "terraform"
+            },
+            "tags_all": {
+              "ManagedBy": "terraform"
+            },
+            "tier": "Standard",
+            "type": "String",
+            "value": "6379",
+            "value_wo": null,
+            "value_wo_version": null,
+            "version": 2
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "value"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "value_wo"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

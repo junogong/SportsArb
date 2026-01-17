@@ -41,18 +41,34 @@ console.log(`[DEBUG] Final process.env state: ${envState}`);
 const app = express();
 const port = process.env.PORT || 4000;
 const ODDS_API_KEY_SSM_PATH = '/arb-finder/odds-api-key';
+const REDIS_HOST_SSM_PATH = '/stakt/redis/host';
+const REDIS_PORT_SSM_PATH = '/stakt/redis/port';
+
 let ODDS_API_KEY = process.env.ODDS_API_KEY;
 
 // Re-check and fetch from cloud if needed
 async function initializeSecurity() {
+  // 1. Fetch Odds API Key
   ODDS_API_KEY = await getSecret(ODDS_API_KEY_SSM_PATH, ODDS_API_KEY);
   if (!ODDS_API_KEY) {
     console.warn(`[WARN] ODDS_API_KEY is not set globally or via ${envPath}.`);
   } else {
     const mask = (k) => (k && k.length >= 8) ? `${k.slice(0, 4)}...${k.slice(-4)} (len:${k.length})` : '(short)';
     console.log(`[INFO] Odds API Key is active (Source: ${process.env.ODDS_API_KEY === ODDS_API_KEY ? '.env' : 'AWS SSM'})`);
-    // Export globally for other modules to see if they access process.env later
     process.env.ODDS_API_KEY = ODDS_API_KEY;
+  }
+
+  // 2. Fetch Redis Configuration (Critical for auto-resume after pause)
+  const redisHost = await getSecret(REDIS_HOST_SSM_PATH, process.env.REDIS_HOST);
+  const redisPort = await getSecret(REDIS_PORT_SSM_PATH, process.env.REDIS_PORT);
+
+  if (redisHost) {
+    process.env.REDIS_HOST = redisHost;
+    console.log(`[INFO] Redis Host configured: ${redisHost}`);
+  }
+  if (redisPort) {
+    process.env.REDIS_PORT = redisPort;
+    console.log(`[INFO] Redis Port configured: ${redisPort}`);
   }
 }
 

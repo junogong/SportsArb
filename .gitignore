@@ -3,6 +3,13 @@ server/.env
 client/dist/
 .DS_Store
 
+# Terraform
+infrastructure/.terraform/
+infrastructure/*.tfstate
+infrastructure/*.tfstate.backup
+infrastructure/terraform.tfvars
+infrastructure/.terraform.lock.hcl
+
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
 amplify/.config/local-*
