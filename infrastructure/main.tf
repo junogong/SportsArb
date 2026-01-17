@@ -18,6 +18,7 @@ module "ec2" {
   source      = "./modules/ec2"
   instance_id = var.ec2_instance_id
   paused      = var.paused
+  depends_on  = [module.ssm]
 }
 
 # ElastiCache Module - Delete when paused, recreate when resumed
